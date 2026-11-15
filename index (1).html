@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f6fa">
+    <title>Shinnyo Phrase Selection Game</title>
+    <style>
+        :root {
+            --bg-color: #f5f6fa;
+            --card-bg: #ffffff;
+            --primary: #2f3640;
+            --primary-hover: #718093;
+            --text-color: #2f3640;
+            --accent: #e84118;
+            --border-color: #dcdde1;
+        }
+        
+        /* スマホでの誤操作・拡大防止と快適なタッチ操作のためのスタイル */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+        
+        .container {
+            background: var(--card-bg);
+            padding: 24px 16px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 540px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 1.6em;
+            margin-bottom: 8px;
+            color: #1e272e;
+        }
+        
+        h2 {
+            font-size: 1.3em;
+            margin-top: 0;
+            color: #1e272e;
+        }
+        
+        .description {
+            font-size: 0.95em;
+            color: #7f8c8d;
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }
+        
+        .progress {
+            font-size: 0.9em;
+            color: #718093;
+            margin-bottom: 16px;
+            font-weight: bold;
+            background: #f1f2f6;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        
+        /* 15択の時にスマホの画面からはみ出さないためのスクロール設定 */
+        .scrollable-grid {
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 4px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background: #fafafa;
+        }
+        
+        /* ボタンをスマホで押しやすいサイズに最適化 */
+        button.option-btn {
+            background-color: #fff;
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+            font-size: 1em;
+            line-height: 1.4;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: left;
+            display: block;
+            width: 100%;
+            color: var(--text-color);
+        }
+        
+        @media (hover: hover) {
+            button.option-btn:hover {
+                border-color: #00a8ff;
+                background-color: #f4f9ff;
+            }
+        }
+        
+        button.option-btn:active {
+            background-color: #f1f2f6;
+            transform: scale(0.99);
+        }
+        
+        .start-btn {
+            background-color: #00a8ff;
+            color: white;
+            border: none;
+            padding: 16px 40px;
+            font-size: 1.1em;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            max-width: 280px;
+            box-shadow: 0 4px 12px rgba(0, 168, 255, 0.3);
+        }
+        
+        .result-list {
+            text-align: left;
+            margin-top: 20px;
+            padding: 0;
+            list-style: none;
+        }
+        
+        .result-item {
+            padding: 14px 10px;
+            border-bottom: 1px solid #f1f2f6;
+            font-size: 0.95em;
+            line-height: 1.4;
+        }
+        
+        /* 1位を目立たせる装飾 */
+        .result-item:first-child {
+            font-weight: bold;
+            background: #fff9e6;
+            border: 1.5px solid #f1c40f;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .rank-num {
+            display: inline-block;
+            width: 50px;
+            font-weight: bold;
+            color: #718093;
+        }
+        .result-item:first-child .rank-num {
+            color: #f1c40f;
+        }
+        
+        .meta-info {
+            font-size: 0.8em;
+            color: #95a5a6;
+            display: block;
+            margin-top: 4px;
+            font-weight: normal;
+        }
+        
+        .match-label {
+            font-weight: bold;
+            color: #e84118;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+        
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- スタート画面 -->
+    <div id="start-screen">
+        <h1>Shinnyo Phrase<br>Selection Game</h1>
+        <p class="description">
+            提示される選択肢から心に響くものを進めていき、全64語句の中からあなただけの「Top 8」のランキングを決定します。<br><br>
+            <span style="font-size: 0.85em; display:block; margin-top:8px;">
+                【進行工程】<br>
+                予選(4択×16) → 本選(4択×4) → 敗者復活(15択×4) → 最終選考(2択×12)
+            </span>
+        </p>
+        <button class="start-btn" onclick="startGame()">ゲームを開始する</button>
+    </div>
+
+    <!-- ゲームプレイ画面 -->
+    <div id="game-screen" class="hidden">
+        <h2 id="phase-title">フェーズ</h2>
+        <div id="progress-text" class="progress">第 1 / 16 試合</div>
+        <div id="options-container" class="options-grid"></div>
+    </div>
+
+    <!-- 結果画面 -->
+    <div id="result-screen" class="hidden">
+        <h2>👑 最終結果 (Top 8)</h2>
+        <p class="description">あなたが選んだトップ8の語句ランキングです。</p>
+        <div id="final-ranking" class="result-list"></div>
+        <button class="start-btn" style="margin-top:24px; background-color:#718093; box-shadow:none;" onclick="location.reload()">もう一度遊ぶ</button>
+    </div>
+</div>
+
+<script>
+// ==========================================
+// 64個のマスターデータ
+// ==========================================
+const masterData = [
+    { text: "真如教徒の聖地とは、真如み教えの救いの功徳が束ねられ、証されている”親苑”です。", year: "2007", speaker: "orange" },
+    { text: "心を美しく飾るその根本となるものは、戒律を守るということではないかと思います。", year: "1966", speaker: "yellow" },
+    { text: "本当に苦しかったら、祈ること。皆さんは一人ではありません。", year: "-", speaker: "orange" },
+    { text: "月の裏側が発見される時、きっとこの教えは広まると思う。", year: "1984", speaker: "green" },
+    { text: "真如青年、一人たりともそのみ心に外れるものはおりません。この生命に代えても。", year: "1974", speaker: "orange" },
+    { text: "(真如苑の”真如”とは、)真実であるまことの相が\"真\"で、”如”は如常、即ち常のごとくで、変易のないことを示している言葉です。", year: "-", speaker: "red" },
+    { text: "世のため人のために正しく道を貫くべし", year: "1936", speaker: "yellow" },
+    { text: "ありのままの自分でいいのです。", year: "-", speaker: "orange" },
+    { text: "怨みを離れて怨みは鎮まる。", year: "1941", speaker: "red" },
+    { text: "初心を貫く", year: "-", speaker: "red" },
+    { text: "その先に喜びが待っているのだから、負けてはいけない", year: "1947", speaker: "yellow" },
+    { text: "慈悲は争いを鎮める", year: "1948", speaker: "yellow" },
+    { text: "未来の真如苑は青年に託します", year: "2011", speaker: "orange" },
+    { text: "お花見に行くつもりで", year: "1950", speaker: "green" },
+    { text: "どんな困難も教法護持の勇気と不動心でこえて参りましょう", year: "1995", speaker: "orange" },
+    { text: "努力すれば、必ず涅槃の楽を得ることが出来る。", year: "1959", speaker: "red" },
+    { text: "苦しかったら、悲しかったら、淋しかったら、”南無真如一如大般涅槃教”と誦えるのだよ", year: "1970", speaker: "red" },
+    { text: "さくらはみんなを楽しませ微かな風に散っていく さくらはみんなを喜ばす", year: "1948", speaker: "green" },
+    { text: "教えは曲がらない。曲がらないから真実という。真実だから尊い。", year: "1950", speaker: "green" },
+    { text: "「自分なんかは」と引っ込まないで「あなた」が必要なの。なくてはならない自分を輝かせてゆく。", year: "2012", speaker: "orange" },
+    { text: "Be A Light for Peace. (一人ひとりが平和の燈火になりましょう)", year: "2013", speaker: "orange" },
+    { text: "教主様の最後のお言葉は「はい」でした", year: "1989", speaker: "orange" },
+    { text: "若いとは身命をかけること", year: "1984", speaker: "red" },
+    { text: "人生の生活は見様見方によって、お浄土ともなれば穢土ともなる。", year: "1946", speaker: "red" },
+    { text: "どこまでも仏意に添い、初めて立教100年になりましょう。真実に依って立つ仏意を銘記したいと思います。", year: "1986", speaker: "red" },
+    { text: "これ他人事にあらず自分ごと", year: "1967", speaker: "blue" },
+    { text: "いざという時に役に立つ人。真如双親様、両童子様を信じてる皆さんはそういう人になれます。", year: "2017", speaker: "orange" },
+    { text: "お前たち(両童子様)の後に続く青年が、こんなにもたくさんいるのだよ", year: "1958", speaker: "red" },
+    { text: "人々の心に信仰の歓喜の燈火を点じていくこと", year: "1964", speaker: "red" },
+    { text: "青年の皆さん、僕たちのできないことをしてください", year: "-", speaker: "green" },
+    { text: "み仏はあなたを必要とされておられる。生きて必ず還ってくるように。", year: "1944", speaker: "red" },
+    { text: "智文は他のために「ゆずる心」は強かった。", year: "1936", speaker: "blue" },
+    { text: "教法の礎たる両童子の求願継承を希って", year: "1980", speaker: "red" },
+    { text: "人々を喜びへとわたす平和の橋を築いてまいりましょう", year: "2009", speaker: "orange" },
+    { text: "この教えをやめないでね", year: "-", speaker: "orange" },
+    { text: "利己から利他になる時、人間の欲望は清浄になるのです。", year: "2012", speaker: "orange" },
+    { text: "男なら潔く", year: "1952", speaker: "yellow" },
+    { text: "土台となっていく覚悟を定めるのです。", year: "1961", speaker: "yellow" },
+    { text: "全ては越えられる困難である。時は今。", year: "2010", speaker: "yellow" },
+    { text: "私はお経が好きだったのかもしれません", year: "1942", speaker: "orange" },
+    { text: "全ての命に希望ある未来を", year: "2010", speaker: "orange" },
+    { text: "慈悲の心、温かい心をもって接することが、教えをわからせる第一歩", year: "1987", speaker: "yellow" },
+    { text: "よく研究するのだな", year: "-", speaker: "red" },
+    { text: "きっと正しいものが勝つに決まっているんだから。僕たち兄妹が力を合わせて、お父さんお母さんを守って行こうよ。", year: "1950", speaker: "green" },
+    { text: "僕たちの休むところより、皆さんの心の休み場所を先に", year: "1953", speaker: "green" },
+    { text: "大般涅槃教に巡り会えた感激は終生、忘れえぬものであります。", year: "1956", speaker: "red" },
+    { text: "皆さん方は現代の青年純陀です。必ず困難を乗り越えることができると思います。", year: "2004", speaker: "orange" },
+    { text: "信心は我が身を磨く砥石かな", year: "1938", speaker: "red" },
+    { text: "真如苑の教えは新興宗教ではありません。一番古い教えなんです。", year: "1994", speaker: "red" },
+    { text: "多くの人たちが救われていくことが僕は一番嬉しい。", year: "1952", speaker: "green" },
+    { text: "遥か遠い道も、確かに親苑に続く道です。どんなに遠くても、双親様のみ心が注がれているのです。", year: "1985", speaker: "orange" },
+    { text: "一人ではできなくても、みんなで力を合わせれば、乗り越えられます。", year: "2011", speaker: "orange" },
+    { text: "護法善神様の分身となってまいりましょう", year: "2015", speaker: "orange" },
+    { text: "苦しみを仏の慈悲として ー", year: "-", speaker: "yellow" },
+    { text: "永遠かけて不動の心拝受して 我れ人々と道貫かむ", year: "1938", speaker: "red" },
+    { text: "燈火は念々に滅するといえども、光ありて暗冥を除き破る", year: "1948", speaker: "red" },
+    { text: "心の誕生をしていき、人間本位の考えを切り替えて、仏の子として歩んでいきたいと思います", year: "1954", speaker: "yellow" },
+    { text: "一心の”まこと”をこめて祈れ。何ごとも、逆に来ては順にうけて慧眼を開け。先を明るく見よ。信の心を不動にせよ。強くせよ ー", year: "1938", speaker: "red" },
+    { text: "今できることをするのが仏意", year: "1971", speaker: "orange" },
+    { text: "一如の善念は人々の心を目覚めさせ智慧の眼を輝かせてゆく", year: "1936", speaker: "blue" },
+    { text: "人前に出るのが苦手だった私は、真実を求めるために一生懸命努力し続けました。だから自分を変えることができたのです。", year: "2002", speaker: "orange" },
+    { text: "青年の中に両童子の姿を見る", year: "1954", speaker: "red" },
+    { text: "道を求めることは苦しいことである。道を求めざるはさらに苦しみ多いことである。", year: "1967", speaker: "yellow" },
+    { text: "精一杯、悔いのない一年を過ごしてください。熱い心から生み出された歓喜、お救け、ご奉仕の実践、人格を向上させて行こうとする行動、それが未来へとつながっていく原動力です。", year: "1994", speaker: "orange" }
+];
+
+// ゲーム進行用変数
+let pool = [];
+let roundIndex = 0;
+let phase = 'qualify';
+let qualifyWinners = [];
+let qualifyLosers = [];
+let mainWinners = [];
+let mainLosers = [];
+let revivalWinners = [];
+let top8Items = [];
+let finalMatches = [];
+let finalMatchIndex = 0;
+let ranking = Array(8).fill(null);
+
+// 配列のシャッフル
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+function startGame() {
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    pool = shuffle([...masterData]);
+    phase = 'qualify';
+    roundIndex = 0;
+    renderQualify();
+}
+
+// 1. 予選ブロック (16回、4択)
+function renderQualify() {
+    document.getElementById('phase-title').innerText = "予選ブロック (4択)";
+    document.getElementById('progress-text').innerText = `第 ${roundIndex + 1} / 16 試合`;
+    const container = document.getElementById('options-container');
+    container.classList.remove('scrollable-grid');
+    container.innerHTML = '';
+    const startIndex = roundIndex * 4;
+    const currentOptions = pool.slice(startIndex, startIndex + 4);
+    currentOptions.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = item.text;
+        btn.onclick = () => selectQualify(item, currentOptions);
+        container.appendChild(btn);
+    });
+}
+
+function selectQualify(winner, options) {
+    qualifyWinners.push(winner);
+    options.forEach(o => { if(o !== winner) qualifyLosers.push(o); });
+    roundIndex++;
+    if (roundIndex < 16) {
+        renderQualify();
+    } else {
+        pool = [...qualifyWinners];
+        roundIndex = 0;
+        phase = 'main';
+        renderMain();
+    }
+}
+
+// 2. 本選ブロック (4回、4択)
+function renderMain() {
+    document.getElementById('phase-title').innerText = "本選ブロック (4択)";
+    document.getElementById('progress-text').innerText = `第 ${roundIndex + 1} / 4 試合`;
+    const container = document.getElementById('options-container');
+    container.innerHTML = '';
+    const startIndex = roundIndex * 4;
+    const currentOptions = pool.slice(startIndex, startIndex + 4);
+    currentOptions.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = item.text;
+        btn.onclick = () => selectMain(item, currentOptions);
+        container.appendChild(btn);
+    });
+}
+
+function selectMain(winner, options) {
+    mainWinners.push(winner);
+    options.forEach(o => { if(o !== winner) mainLosers.push(o); });
+    roundIndex++;
+    if (roundIndex < 4) {
+        renderMain();
+    } else {
+        // 予選敗者48 + 本選敗者12 = 計60
+        pool = shuffle([...qualifyLosers, ...mainLosers]);
+        roundIndex = 0;
+        phase = 'revival';
+        renderRevival();
+    }
+}
+
+// 3. 敗者復活戦 (4回、15択)
+function renderRevival() {
+    document.getElementById('phase-title').innerText = "敗者復活戦 (15択)";
+    document.getElementById('progress-text').innerText = `第 ${roundIndex + 1} / 4 試合`;
+    const container = document.getElementById('options-container');
+    container.classList.add('scrollable-grid');
+    container.innerHTML = '';
+    const startIndex = roundIndex * 15;
+    const currentOptions = pool.slice(startIndex, startIndex + 15);
+    currentOptions.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = item.text;
+        btn.onclick = () => selectRevival(item);
+        container.appendChild(btn);
+    });
+    container.scrollTop = 0;
+}
+
+function selectRevival(winner) {
+    revivalWinners.push(winner);
+    roundIndex++;
+    if (roundIndex < 4) {
+        renderRevival();
+    } else {
+        top8Items = [...mainWinners, ...revivalWinners];
+        setupFinalTournament();
+    }
+}
+
+// 4. 最終選考 (12回、2択)
+function setupFinalTournament() {
+    phase = 'final';
+    finalMatchIndex = 0;
+    finalMatches = [
+        // 準々決勝
+        { id: 0, p1: top8Items[0], p2: top8Items[1], label: "準々決勝 第1試合", winner: null, loser: null },
+        { id: 1, p1: top8Items[2], p2: top8Items[3], label: "準々決勝 第2試合", winner: null, loser: null },
+        { id: 2, p1: top8Items[4], p2: top8Items[5], label: "準々決勝 第3試合", winner: null, loser: null },
+        { id: 3, p1: top8Items[6], p2: top8Items[7], label: "準々決勝 第4試合", winner: null, loser: null },
+        // 5-8位予備戦
+        { id: 4, p1: null, p2: null, label: "5～8位決定 予備戦1", winner: null, loser: null, dependency: {p1_from: 0, p1_type: 'loser', p2_from: 1, p2_type: 'loser'} },
+        { id: 5, p1: null, p2: null, label: "5～8位決定 予備戦2", winner: null, loser: null, dependency: {p1_from: 2, p1_type: 'loser', p2_from: 3, p2_type: 'loser'} },
+        // 準決勝
+        { id: 6, p1: null, p2: null, label: "準決勝 第1試合", winner: null, loser: null, dependency: {p1_from: 0, p1_type: 'winner', p2_from: 1, p2_type: 'winner'} },
+        { id: 7, p1: null, p2: null, label: "準決勝 第2試合", winner: null, loser: null, dependency: {p1_from: 2, p1_type: 'winner', p2_from: 3, p2_type: 'winner'} },
+        // 順位決定戦
+        { id: 8, p1: null, p2: null, label: "🏁 7位決定戦", winner: null, loser: null, dependency: {p1_from: 4, p1_type: 'loser', p2_from: 5, p2_type: 'loser'} },
+        { id: 9, p1: null, p2: null, label: "🏁 5位決定戦", winner: null, loser: null, dependency: {p1_from: 4, p1_type: 'winner', p2_from: 5, p2_type: 'winner'} },
+        { id: 10, p1: null, p2: null, label: "🥉 3位決定戦", winner: null, loser: null, dependency: {p1_from: 6, p1_type: 'loser', p2_from: 7, p2_type: 'loser'} },
+        { id: 11, p1: null, p2: null, label: "🏆 決勝戦", winner: null, loser: null, dependency: {p1_from: 6, p1_type: 'winner', p2_from: 7, p2_type: 'winner'} }
+    ];
+    renderFinalMatch();
+}
+
+function renderFinalMatch() {
+    document.getElementById('phase-title').innerText = "最終選考 (2択)";
+    document.getElementById('progress-text').innerText = `第 ${finalMatchIndex + 1} / 12 試合`;
+    const container = document.getElementById('options-container');
+    container.classList.remove('scrollable-grid');
+    container.innerHTML = '';
+    let currentMatch = finalMatches[finalMatchIndex];
+    if (currentMatch.dependency) {
+        const dep = currentMatch.dependency;
+        currentMatch.p1 = finalMatches[dep.p1_from][dep.p1_type];
+        currentMatch.p2 = finalMatches[dep.p2_from][dep.p2_type];
+    }
+    const labelDiv = document.createElement('div');
+    labelDiv.className = 'match-label';
+    labelDiv.innerText = currentMatch.label;
+    container.appendChild(labelDiv);
+    [currentMatch.p1, currentMatch.p2].forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = item.text;
+        btn.onclick = () => selectFinal(item, item === currentMatch.p1 ? currentMatch.p2 : currentMatch.p1);
+        container.appendChild(btn);
+    });
+}
+
+function selectFinal(winner, loser) {
+    finalMatches[finalMatchIndex].winner = winner;
+    finalMatches[finalMatchIndex].loser = loser;
+    finalMatchIndex++;
+    if (finalMatchIndex < 12) {
+        renderFinalMatch();
+    } else {
+        ranking[0] = finalMatches[11].winner; // 1位
+        ranking[1] = finalMatches[11].loser;  // 2位
+        ranking[2] = finalMatches[10].winner; // 3位
+        ranking[3] = finalMatches[10].loser;  // 4位
+        ranking[4] = finalMatches[9].winner;  // 5位
+        ranking[5] = finalMatches[9].loser;   // 6位
+        ranking[6] = finalMatches[8].winner;  // 7位
+        ranking[7] = finalMatches[8].loser;   // 8位
+        showResults();
+    }
+}
+
+// 5. 結果発表画面（西暦・発言者の併記）
+function showResults() {
+    document.getElementById('game-screen').classList.add('hidden');
+    document.getElementById('result-screen').classList.remove('hidden');
+    const rankList = document.getElementById('final-ranking');
+    rankList.innerHTML = '';
+    ranking.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        const line = document.createElement('div');
+        const rank = document.createElement('span');
+        rank.className = 'rank-num';
+        rank.textContent = `第 ${index + 1} 位`;
+        const phrase = document.createElement('span');
+        phrase.textContent = ` ${item.text}`;
+        line.append(rank, phrase);
+        const meta = document.createElement('span');
+        meta.className = 'meta-info';
+        meta.textContent = `（${item.year}年 / ${item.speaker}）`;
+        div.append(line, meta);
+        rankList.appendChild(div);
+    });
+}
+</script>
+
+</body>
+</html>
